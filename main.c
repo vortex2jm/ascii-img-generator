@@ -14,9 +14,8 @@ int main(int argc, char ** argv)
     sscanf(argv[2], "%d", &height);
 
     Img img = Image(width,height);
-    int w = img.get_width(img);
-    int h = img.get_height(img);
-    printf("%d, %d", w, h);
+    img.decode_img(img, "./image-test.jpg");
+    img.draw_img(img);
     
     return 0;
 }
