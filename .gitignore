@@ -1,0 +1,4 @@
+*.ppm
+test/
+prog
+.vscode/
