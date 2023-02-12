@@ -4,21 +4,21 @@
 #include "img.h"
 
 struct atributes{
+    char * file;
     unsigned int width;
     unsigned int height;
-    unsigned int rgb[3];
     char ** buffer;
 };
 
 // constructor
-Img Image(const unsigned int width, const unsigned int height);
+Img Image(char * file);
 
 // public
 unsigned int get_width(Img img);
 unsigned int get_height(Img img);
-void decode_img(Img img, char * path);
-void draw_img(Img img);
-void f_img();
+void process(Img img);
+void draw(Img img);
+void delete(Img img);
 
 // private
 char ** CreateBuffer(Img img);
@@ -28,81 +28,53 @@ unsigned int get_width(Img img){
     return img.data->width;
 }
 
+//====================================================//
 unsigned int get_height(Img img){
  return img.data->height;
 }
 
-
-void decode_img(Img img, char * path){
-    const unsigned int w = img.data->width;
-    const unsigned int h = img.data->height;
-    img.data->buffer = CreateBuffer(img);
+//====================================================//
+void process(Img img){
+    // img.data->buffer = CreateBuffer(img);
     const unsigned char density[29] = "N@#W$9876543210?!abc;:+=-,._ ";
 
-    FILE * file = fopen(path, "rb");
+    FILE * file = fopen(img.data->file, "rb");
     if(!file){
-        printf("Could not open file %s!\n", path);
+        printf("Could not open file %s!\n", img.data->file);
         exit(1);
     }
 
-    int i=1, l=0, c=0, avarage=0, index=0;
-    unsigned char r, g, b, a, byte;
+    // Lendo largura e altura do arquivo
+    fscanf(file, "P6\n%d %d\n255\n", &img.data->width, &img.data->height);
 
-    printf("1\n");
-    
-    int x=1;
-    while(fread(&byte, sizeof(unsigned char), 1, file)){
+    // Criando uma matriz para armazenar a nova imagem
+    img.data->buffer = CreateBuffer(img);
 
-        printf("%d\n",x);
-        x++;
+    int red=0, green=0, blue=0, avarage=0, index=0;
 
-        if(i == 1){
-            r = byte;
-            i++;
-        }
-        else if(i == 2){
-            g = byte;
-            i++;
-        }
-        else if(i == 3){
-            b = byte;
+    for(int x=0; x<img.data->width; x++){
+        for(int y=0; y<img.data->height; y++){
+            red = fgetc(file);
+            green = fgetc(file);
+            blue = fgetc(file);
 
-            // Generating RGB avarage======//
-            avarage = (int)((r+g+b)/3);
-            if(!avarage){
-                index  = strlen(density) - 1;
-            }else{
-                index = (avarage % strlen(density));
-            }
+            avarage = (red + green + blue)/3;
 
-            // Writing char map=======//
-            if(l < h - 1){
-                if(c == w - 1){
-                    l++;
-                    c=0;
-                }
-                img.data->buffer[l][c] = density[index];
-                c++;
+            if(!avarage)
+                index = 29 - 1;
+            else
+                index = avarage % 29;
 
-            }else if(l == h - 1){
-                if(c == w - 1){
-                    img.data->buffer[l][c] = density[index];
-                    l++;
-                }
-                img.data->buffer[l][c] = density[index];
-                c++;
-            }
-            i++;
-        }else if(i == 4){
-            i=1;
+            img.data->buffer[x][y] = density[index];
         }
     }
     fclose(file);
 }
 
-void draw_img(Img img){
-    for(int l=0; l<img.data->height; l++){
-        for(int c=0; c<img.data->width; c++){
+//====================================================//
+void draw(Img img){
+    for(int l=0; l<img.data->width; l++){
+        for(int c=0; c<img.data->height; c++){
             printf("%c", img.data->buffer[l][c]);
         }
         printf("\n");
@@ -110,35 +82,43 @@ void draw_img(Img img){
     printf("\n");
 }
 
-void f_img(){
-
+//====================================================//
+void delete(Img img){
+    if(img.data){
+        if(img.data->buffer){
+            for(int x=0; x < img.data->width; x++){
+                free(img.data->buffer[x]);
+            }
+            free(img.data->buffer);
+        }
+        free(img.data);
+    }
 }
 
-Img Image(const unsigned int width, const unsigned int height){
+//====================================================//
+Img Image(char * file){
     static Img img;
 
     img.get_width = &get_width;
     img.get_height = &get_height;
-    img.decode_img = &decode_img;
-    img.draw_img = &draw_img;
+    img.process = &process;
+    img.draw = &draw;
+    img.delete = &delete;
 
     img.data = malloc(sizeof(Atributes));
-    img.data->height = height;
-    img.data->width = width;
-    
-    for(int i=0;i<3;i++){
-        img.data->rgb[i] = 0;
-    }
-    
+    img.data->file = file;
+    img.data->width = 0;
+    img.data->height = 0;
     img.data->buffer = NULL;
 
     return img;
 }
 
+//====================================================//
 char ** CreateBuffer(Img img){
-    char ** buffer = (char **)malloc(sizeof(char*) * img.data->height);
-    for(int i=0;i<img.data->height;i++){
-        buffer[i] = (char *)malloc(sizeof(char) * img.data->width);
+    char ** buffer = (char **)malloc(sizeof(char*) * img.data->width);
+    for(int i=0;i<img.data->width;i++){
+        buffer[i] = (char *)malloc(sizeof(char) * img.data->height);
     }
     return buffer;
 }
